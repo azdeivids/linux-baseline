@@ -17,15 +17,15 @@ data azurerm_shared_image_version ubuntu2004 {
 
 module linux_vm {
   
-  source = "git::ssh://git@ssh.dev.azure.com/v3/azdeivids/infrastructure/terraform-modules//compute/vm/linux/ubuntu-baseline?ref=1.0.1"
+  source = "git::ssh://git@ssh.dev.azure.com/v3/azdeivids/infrastructure/terraform-modules//compute/vm/linux/ubuntu-baseline?ref=v1.0.3"
 
-  name               = "${random_pet.name.id}-${var.env_name}" 
-  resurce_group_name = azurerm_resource_group.main.name
-  location           = azurerm_resource_group.main.location
-  subnet_id          = module.network.subnet_id
-  vm_size            = "Standard_DS2_v2"
-  vm_image_id        = data.azurerm_shared_image_version.ubuntu2004.id
-  admin_user         = "deivids"
-  ssh_public_key     = data.azurerm_key_vault_secret.ssh_public_key.value
+  name                = "${random_pet.name.id}-${var.env_name}" 
+  resource_group_name = azurerm_resource_group.main.name
+  location            = azurerm_resource_group.main.location
+  subnet_id           = module.network.subnet_id
+  vm_size             = "Standard_DS2_v2"
+  vm_image_id         = data.azurerm_shared_image_version.ubuntu2004.id
+  admin_user          = "deivids"
+  ssh_public_key      = data.azurerm_key_vault_secret.ssh_public_key.value
   
 }
