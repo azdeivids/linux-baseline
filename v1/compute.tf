@@ -22,7 +22,7 @@ data azurerm_storage_account boot_diagnostics {
 
 module linux_vm {
   
-  source = "git::ssh://git@ssh.dev.azure.com/v3/azdeivids/infrastructure/terraform-modules//compute/vm/linux/ubuntu-baseline?ref=v1.0.4"
+  source = "git::ssh://git@ssh.dev.azure.com/v3/azdeivids/infrastructure/terraform-modules//compute/vm/linux/ubuntu-baseline?ref=v1.0.7"
 
   name                                 = "${random_pet.name.id}-${var.env_name}" 
   resource_group_name                  = azurerm_resource_group.main.name
@@ -34,4 +34,58 @@ module linux_vm {
   ssh_public_key                       = data.azurerm_key_vault_secret.ssh_public_key.value
   boot_diagnostics_storage_account_uri = data.azurerm_storage_account.boot_diagnostics.primary_blob_endpoint
   
+}
+
+resource time_offset sas_expiery {
+  offset_years = 1
+}
+
+resource time_offset sas_start {
+  offset_days = -1
+}
+
+data azurerm_storage_account_sas vm_diagnostics {
+  connection_string = data.azurerm_storage_account.boot_diagnostics.primary_connection_string
+  https_only        = true
+  signed_version    = "2017-07-29"
+
+  resource_types {
+    service   = false
+    container = true
+    object    = true
+  }
+
+  services {
+    blob  = true
+    queue = false
+    table = true
+    file  = false
+  }
+
+  start  = time_offset.sas_start.rfc3339
+  expiry = time_offset.sas_expiery.rfc3339
+
+  permissions {
+    read    = false
+    write   = true
+    delete  = false
+    list    = true
+    add     = true
+    create  = true
+    update  = true
+    process = false
+    tag     = false
+    filter  = false
+  }
+}
+
+module linux_diag {
+
+  source = "git::ssh://git@ssh.dev.azure.com/v3/azdeivids/infrastructure/terraform-modules//compute/vm-extensions/linux-diagnostics?ref=v1.0.7"
+
+  name                      = "vm-diag-${module.linux_vm.hostname}"
+  virtual_machine_id        = module.linux_vm.id
+  storage_account_name      = data.azurerm_storage_account.boot_diagnostics.name
+  storage_account_sas_token = data.azurerm_storage_account_sas.vm_diagnostics.sas
+
 }
