@@ -9,7 +9,7 @@ data azurerm_key_vault_secret ssh_public_key {
 }
 
 data azurerm_shared_image_version ubuntu2004 {
-  name                = "2023.06.2"
+  name                = "2023.06.4"
   image_name          = "ubuntu2004-baseline"
   gallery_name        = "galdevtfazdemachineimages"
   resource_group_name = "rg-dev-tfazde-machine-images"
