@@ -22,7 +22,7 @@ data azurerm_storage_account boot_diagnostics {
 
 module linux_vm {
   
-  source = "git::ssh://git@ssh.dev.azure.com/v3/azdeivids/infrastructure/terraform-modules//compute/vm/linux/ubuntu-baseline?ref=v1.0.7"
+  source = "git::ssh://git@ssh.dev.azure.com/v3/azdeivids/infrastructure/terraform-modules//compute/vm/linux/ubuntu-baseline?ref=v1.0.9"
 
   name                                 = "${random_pet.name.id}-${var.env_name}" 
   resource_group_name                  = azurerm_resource_group.main.name
@@ -36,7 +36,27 @@ module linux_vm {
   
 }
 
-resource time_offset sas_expiery {
+module "linux_monitor" {
+  
+  source = "git::ssh://git@ssh.dev.azure.com/v3/azdeivids/infrastructure/terraform-modules//compute/vm-extensions/linux-azure-monitor?ref=v1.0.9"
+
+  name               = "AzureMonitorLinuxAgent"
+  virtual_machine_id = module.linux_vm.id
+
+}
+
+module linux_diag {
+
+  source = "git::ssh://git@ssh.dev.azure.com/v3/azdeivids/infrastructure/terraform-modules//compute/vm-extensions/linux-diagnostics?ref=v1.0.9"
+
+  name                      = "vme-diag-${module.linux_vm.hostname}"
+  virtual_machine_id        = module.linux_vm.id
+  storage_account_name      = data.azurerm_storage_account.boot_diagnostics.name
+  storage_account_sas_token = data.azurerm_storage_account_sas.vm_diagnostics.sas
+
+}
+
+resource time_offset sas_expiry {
   offset_years = 1
 }
 
@@ -45,6 +65,7 @@ resource time_offset sas_start {
 }
 
 data azurerm_storage_account_sas vm_diagnostics {
+
   connection_string = data.azurerm_storage_account.boot_diagnostics.primary_connection_string
   https_only        = true
   signed_version    = "2017-07-29"
@@ -63,29 +84,18 @@ data azurerm_storage_account_sas vm_diagnostics {
   }
 
   start  = time_offset.sas_start.rfc3339
-  expiry = time_offset.sas_expiery.rfc3339
+  expiry = time_offset.sas_expiry.rfc3339
 
   permissions {
-    read    = false
-    write   = true
-    delete  = false
-    list    = true
-    add     = true
-    create  = true
-    update  = true
-    process = false
-    tag     = false
-    filter  = false
+    add                        = true
+    create                     = true
+    delete                     = false
+    filter                     = false
+    list                       = true
+    process                    = false
+    read                       = false
+    tag                        = false
+    update                     = true
+    write                      = true
   }
-}
-
-module linux_diag {
-
-  source = "git::ssh://git@ssh.dev.azure.com/v3/azdeivids/infrastructure/terraform-modules//compute/vm-extensions/linux-diagnostics?ref=v1.0.7"
-
-  name                      = "vm-diag-${module.linux_vm.hostname}"
-  virtual_machine_id        = module.linux_vm.id
-  storage_account_name      = data.azurerm_storage_account.boot_diagnostics.name
-  storage_account_sas_token = data.azurerm_storage_account_sas.vm_diagnostics.sas
-
 }
